@@ -1,0 +1,43 @@
+[project]
+name = "021-bmo-mainframeapp"
+version = "0.1.0"
+description = "Mainframe Job Monitor - Display daily/weekly/monthly job status from Mainframe via ODBC"
+readme = "README.md"
+authors = [
+    { name = "Pravin Pardeshi", email = "pravin.pardeshi@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pyodbc>=5.1.0",
+    "ibm_db>=3.2.0",
+    "python-dotenv>=1.0.0",
+    "jinja2>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.0",
+]
+db2 = [
+    "ibm_db>=3.2.0",
+    "ibm_db_sa>=0.5.0",
+]
+
+[project.scripts]
+021-bmo-mainframeapp = "021_bmo_mainframeapp.main:run"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build]
+source-layout = "flat"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]

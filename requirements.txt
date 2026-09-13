@@ -1,0 +1,36 @@
+# =====================================
+# Mainframe Job Monitor - Dependencies
+# =====================================
+# Python packages
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pyodbc>=5.1.0
+ibm_db>=3.2.0
+python-dotenv>=1.0.0
+jinja2>=3.1.0
+
+# Dev tools
+# ruff>=0.5.0  (install with: pip install -e ".[dev]")
+
+# IBM DB2 ODBC Driver (system-level, NOT a pip package)
+# -------------------------------------------------------
+# The Python packages above provide the bindings, but you also need
+# the IBM DB2 ODBC driver installed on your system.
+#
+# Linux (RHEL/CentOS):
+#   sudo yum install -y ibm_db2-devel
+#   # Or download from: https://www.ibm.com/docs/en/db2/11.5?topic=drivers-python
+#
+# Linux (Ubuntu/Debian):
+#   Download the IBM DB2 ODBC driver from IBM website
+#   sudo apt-get install -y libxml2
+#
+# macOS:
+#   brew install --cask ibm-db2-odbc-driver
+#
+# Windows:
+#   Download and install from: https://www.ibm.com/support/pages/db2-odbc-driver-download
+#
+# After installation, set the driver name in .env:
+#   ODBC_DRIVER={IBM DB2 ODBC DRIVER}
+#   # Or on Linux: ODBC_DRIVER=/opt/ibm/db2-clidriver/lib64/libdb2o.so

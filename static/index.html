@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mainframe Job Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="header-left">
+      <div class="logo">
+        <i data-lucide="mainframe" class="logo-icon" aria-hidden="true"></i>
+        <div class="logo-text">
+          <h1>Mainframe Job Monitor</h1>
+          <span class="logo-sub">Real-time job status dashboard</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="mode-toggle" id="modeToggle" role="group" aria-label="Application mode">
+        <button class="mode-btn active" data-mode="demo" aria-pressed="true" title="Demo mode - uses sample data">
+          <i data-lucide="beaker" aria-hidden="true"></i>
+          <span>Demo</span>
+        </button>
+        <button class="mode-btn" data-mode="production" aria-pressed="false" title="Production mode - connects to database">
+          <i data-lucide="database" aria-hidden="true"></i>
+          <span>Production</span>
+        </button>
+      </div>
+      <div class="connection-status" id="connectionStatus" aria-live="polite" role="status">
+        <span class="status-dot"></span>
+        <span>Connected</span>
+      </div>
+      <button class="btn-refresh" id="refreshBtn" title="Refresh data" aria-label="Refresh job data">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i>
+      </button>
+      <button class="btn-theme" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+        <i data-lucide="moon" class="theme-icon-dark" aria-hidden="true"></i>
+        <i data-lucide="sun" class="theme-icon-light" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="filters-bar" aria-label="Job filters">
+      <div class="search-box">
+        <i data-lucide="search" class="search-icon" aria-hidden="true"></i>
+        <label for="searchInput" class="sr-only">Search jobs</label>
+        <input type="text" id="searchInput" placeholder="Search jobs by name, ID, or owner..." aria-label="Search jobs by name, ID, or owner" autocomplete="off" />
+        <button class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search" hidden>
+          <i data-lucide="x" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="filter-group">
+        <div class="filter-chips" id="statusFilters" role="group" aria-label="Filter by status">
+          <button class="chip active" data-status="all" aria-pressed="true">
+            <i data-lucide="layers" aria-hidden="true"></i> All
+          </button>
+          <button class="chip" data-status="RUNNING" aria-pressed="false">
+            <i data-lucide="play-circle" aria-hidden="true"></i> Running
+          </button>
+          <button class="chip" data-status="COMPLETED" aria-pressed="false">
+            <i data-lucide="check-circle-2" aria-hidden="true"></i> Completed
+          </button>
+          <button class="chip" data-status="WAITING" aria-pressed="false">
+            <i data-lucide="clock" aria-hidden="true"></i> Waiting
+          </button>
+          <button class="chip" data-status="FAILED" aria-pressed="false">
+            <i data-lucide="x-circle" aria-hidden="true"></i> Failed
+          </button>
+          <button class="chip" data-status="QUEUED" aria-pressed="false">
+            <i data-lucide="list" aria-hidden="true"></i> Queued
+          </button>
+          <button class="chip" data-status="CANCELLED" aria-pressed="false">
+            <i data-lucide="ban" aria-hidden="true"></i> Cancelled
+          </button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-chips" id="frequencyFilters" role="group" aria-label="Filter by frequency">
+          <button class="chip active" data-freq="all" aria-pressed="true">
+            <i data-lucide="calendar" aria-hidden="true"></i> All Frequencies
+          </button>
+          <button class="chip" data-freq="DAILY" aria-pressed="false">
+            <i data-lucide="sun" aria-hidden="true"></i> Daily
+          </button>
+          <button class="chip" data-freq="WEEKLY" aria-pressed="false">
+            <i data-lucide="calendar-days" aria-hidden="true"></i> Weekly
+          </button>
+          <button class="chip" data-freq="MONTHLY" aria-pressed="false">
+            <i data-lucide="calendar-range" aria-hidden="true"></i> Monthly
+          </button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="date-filters" role="group" aria-label="Filter by date range">
+          <label class="date-label">
+            <i data-lucide="calendar-from" aria-hidden="true"></i>
+            <label for="dateFrom" class="sr-only">From date</label>
+            <input type="date" id="dateFrom" placeholder="From" />
+          </label>
+          <span class="date-sep" aria-hidden="true">to</span>
+          <label class="date-label">
+            <i data-lucide="calendar-to" aria-hidden="true"></i>
+            <label for="dateTo" class="sr-only">To date</label>
+            <input type="date" id="dateTo" placeholder="To" />
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="summary-cards" role="region" aria-label="Job status summary">
+      <div class="card summary-card" data-type="total" tabindex="0" role="button" aria-label="Total jobs: click to show all">
+        <div class="card-icon total"><i data-lucide="activity" aria-hidden="true"></i></div>
+        <div class="card-body">
+          <span class="card-value" id="totalCount" aria-live="polite">0</span>
+          <span class="card-label">Total Jobs</span>
+        </div>
+      </div>
+      <div class="card summary-card" data-type="RUNNING" tabindex="0" role="button" aria-label="Running jobs: click to filter">
+        <div class="card-icon running"><i data-lucide="play" aria-hidden="true"></i></div>
+        <div class="card-body">
+          <span class="card-value" id="runningCount" aria-live="polite">0</span>
+          <span class="card-label">Running</span>
+        </div>
+      </div>
+      <div class="card summary-card" data-type="COMPLETED" tabindex="0" role="button" aria-label="Completed jobs: click to filter">
+        <div class="card-icon completed"><i data-lucide="check-circle" aria-hidden="true"></i></div>
+        <div class="card-body">
+          <span class="card-value" id="completedCount" aria-live="polite">0</span>
+          <span class="card-label">Completed</span>
+        </div>
+      </div>
+      <div class="card summary-card" data-type="WAITING" tabindex="0" role="button" aria-label="Waiting jobs: click to filter">
+        <div class="card-icon waiting"><i data-lucide="hourglass" aria-hidden="true"></i></div>
+        <div class="card-body">
+          <span class="card-value" id="waitingCount" aria-live="polite">0</span>
+          <span class="card-label">Waiting</span>
+        </div>
+      </div>
+      <div class="card summary-card" data-type="FAILED" tabindex="0" role="button" aria-label="Failed jobs: click to filter">
+        <div class="card-icon failed"><i data-lucide="alert-triangle" aria-hidden="true"></i></div>
+        <div class="card-body">
+          <span class="card-value" id="failedCount" aria-live="polite">0</span>
+          <span class="card-label">Failed</span>
+        </div>
+      </div>
+      <div class="card summary-card" data-type="QUEUED" tabindex="0" role="button" aria-label="Queued jobs: click to filter">
+        <div class="card-icon queued"><i data-lucide="list" aria-hidden="true"></i></div>
+        <div class="card-body">
+          <span class="card-value" id="queuedCount" aria-live="polite">0</span>
+          <span class="card-label">Queued</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="jobs-section" id="jobsSection">
+      <div class="resize-handle left" id="resizeLeft" title="Drag to resize (double-click to reset)" aria-hidden="true"></div>
+      <div class="resize-handle right" id="resizeRight" title="Drag to resize (double-click to reset)" aria-hidden="true"></div>
+      <div class="section-header">
+        <h2><i data-lucide="server" aria-hidden="true"></i> Job Status List</h2>
+        <div class="view-toggle" role="radiogroup" aria-label="View mode">
+          <button class="view-btn active" id="tableView" title="Table view" role="radio" aria-checked="true" aria-label="Table view">
+            <i data-lucide="table-2" aria-hidden="true"></i>
+          </button>
+          <button class="view-btn" id="gridView" title="Grid view" role="radio" aria-checked="false" aria-label="Grid view">
+            <i data-lucide="grid-3x3" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="jobs-container" id="jobsContainer" aria-live="polite" aria-label="Job list">
+        <div class="skeleton-table" id="loadingSkeleton" aria-label="Loading job data">
+          <div class="skeleton-thead"><div class="skeleton-th" style="width:8%"></div><div class="skeleton-th" style="width:18%"></div><div class="skeleton-th" style="width:10%"></div><div class="skeleton-th" style="width:8%"></div><div class="skeleton-th" style="width:8%"></div><div class="skeleton-th" style="width:12%"></div><div class="skeleton-th" style="width:12%"></div><div class="skeleton-th" style="width:8%"></div><div class="skeleton-th" style="width:16%"></div></div>
+          <div class="skeleton-tr"><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-pill"></div><div class="skeleton-td skeleton-pill-sm"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar-long"></div></div>
+          <div class="skeleton-tr"><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-pill"></div><div class="skeleton-td skeleton-pill-sm"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar-long"></div></div>
+          <div class="skeleton-tr"><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-pill"></div><div class="skeleton-td skeleton-pill-sm"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar-long"></div></div>
+          <div class="skeleton-tr"><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-pill"></div><div class="skeleton-td skeleton-pill-sm"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar-long"></div></div>
+          <div class="skeleton-tr"><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-pill"></div><div class="skeleton-td skeleton-pill-sm"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar"></div><div class="skeleton-td skeleton-bar-long"></div></div>
+          <span class="skeleton-caption">Loading jobs...</span>
+        </div>
+      </div>
+      <div class="pagination-bar" id="paginationBar">
+        <div class="pagination-info" id="paginationInfo" aria-live="polite"></div>
+        <div class="pagination-controls" id="paginationControls" role="navigation" aria-label="Job list pages"></div>
+        <label class="page-size-label">
+          <span>Per page</span>
+          <select id="pageSizeSelect" aria-label="Jobs per page">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="jobModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Job Details</h3>
+        <button class="modal-close" id="modalClose" aria-label="Close dialog">
+          <i data-lucide="x" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <footer class="footer" role="contentinfo">
+    <span>Mainframe Job Monitor v1.0 &mdash; Connected via ODBC</span>
+  </footer>
+
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="liveRegion"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
