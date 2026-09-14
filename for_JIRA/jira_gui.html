@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jira Cloud GUI — testJIRACloud.py</title>
+<style>
+  :root{
+    --bg:#0f172a; --bg2:#1e293b; --card:#1e293b; --border:#334155;
+    --accent:#0052cc; --accent2:#0065ff; --green:#36b37e; --yellow:#ffab00;
+    --red:#ff5630; --text:#e2e8f0; --muted:#94a3b8; --code-bg:#0b1220;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0f172a,#0b1220);color:var(--text);min-height:100vh}
+  header{background:linear-gradient(90deg,#0052cc,#0065ff);padding:18px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header .logo{width:42px;height:42px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px}
+  header h1{margin:0;font-size:20px}
+  header p{margin:2px 0 0;opacity:.9;font-size:13px}
+  .badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);padding:3px 10px;border-radius:999px;font-size:12px}
+  main{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:16px}
+  @media(max-width:950px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .card h2{margin:0 0 4px;font-size:15px;letter-spacing:.3px;text-transform:uppercase;color:#bfdbfe}
+  .card p.desc{margin:0 0 12px;font-size:12.5px;color:var(--muted)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input[type=text],input[type=password],input[type=url],textarea,select{width:100%;background:#0f172a;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 10px;font-size:13px;font-family:inherit}
+  textarea{resize:vertical;min-height:80px;font-family:Consolas,monospace}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--accent2);border-color:var(--accent2)}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:120px}
+  button{cursor:pointer;border:0;border-radius:8px;padding:10px 12px;font-weight:600;font-size:13px;transition:.15s}
+  .btn-primary{background:var(--accent2);color:#fff;width:100%;margin-top:10px}
+  .btn-primary:hover{background:#388bff}
+  .btn-secondary{background:#334155;color:#fff;margin-top:8px;width:100%}
+  .btn-secondary:hover{background:#475569}
+  .btn-green{background:var(--green);color:#06281c;width:100%;margin-top:8px}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:8px;width:100%}
+  .btn-ghost:hover{background:#0f172a}
+  .btn-small{width:auto;padding:7px 10px;font-size:12px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .tab-btn{background:#0f172a;border:1px solid var(--border);color:var(--muted);padding:9px 14px;border-radius:999px}
+  .tab-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .status{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:10px;border:1px solid var(--border);background:#0f172a}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .dot.ok{background:var(--green)} .dot.bad{background:var(--red)} .dot.idle{background:var(--yellow)}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:12px;overflow:auto;font-size:12px;max-height:420px;white-space:pre-wrap;word-break:break-word}
+  code{font-family:Consolas,Menlo,monospace}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:6px;font-size:13px;margin-top:8px}
+  .kv div:nth-child(odd){color:var(--muted)}
+  .pill{display:inline-block;background:#0f172a;border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:12px;margin:2px 4px 2px 0}
+  .warn{background:rgba(255,171,0,.12);border:1px solid rgba(255,171,0,.5);color:#ffe1a8;padding:10px;border-radius:10px;font-size:12.5px;margin-top:10px}
+  .info{background:rgba(0,101,255,.12);border:1px solid rgba(0,101,255,.5);color:#bfdbfe;padding:10px;border-radius:10px;font-size:12.5px;margin-top:10px}
+  .issue-card{background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px}
+  details{margin-top:10px;font-size:13px}
+  summary{cursor:pointer;color:#bfdbfe}
+  ol,ul{font-size:13px;color:#cbd5e1}
+  a{color:#7aa7ff}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🔷</div>
+  <div>
+    <h1>Jira Cloud GUI <span class="badge">mirrors testJIRACloud.py</span></h1>
+    <p>Create • Retrieve • Update tickets &amp; browse projects — single file, no build step</p>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LEFT: CONNECTION ============ -->
+  <section>
+    <div class="card">
+      <h2>1 — OAuth Config</h2>
+      <p class="desc">Prefilled from <code>testJIRACloud.py</code>. Matches Atlassian Developer Console.</p>
+      <label>Client ID</label>
+      <input type="text" id="clientId" value="hoLvKpdJy29xs0AKootkCY1LhYayuU3l" />
+      <label>Client Secret (keep private!)</label>
+      <input type="password" id="clientSecret" value="ATOArZpIwnDlxa4AcwQYsvk3VL3FCKw5g6QmWspPpS6mEh5LJ4rkL2-elymyKQYmVTCLF09D748C" />
+      <div class="row">
+        <div><label>Redirect URI</label><input type="text" id="redirectUri" value="http://localhost:8000/callback" /></div>
+      </div>
+      <label>Scopes (space separated)</label>
+      <input type="text" id="scopes" value="read:jira-work write:jira-work offline_access" />
+      <div class="warn">⚠️ This file contains your <b>Client Secret</b> so it mirrors the Python script. Do not share / publish this HTML. For production, exchange tokens via a backend.</div>
+      <button class="btn-secondary" onclick="buildAuthUrl()">🔗 Build Authorization URL</button>
+      <button class="btn-primary" onclick="openAuth()">🔓 Open Atlassian Authorization Page</button>
+      <label>Authorization URL</label>
+      <textarea id="authUrl" readonly style="min-height:90px"></textarea>
+      <div class="row">
+        <button class="btn-ghost btn-small" onclick="copyAuthUrl()">Copy URL</button>
+        <button class="btn-ghost btn-small" onclick="toggleSecret()">Show/Hide secret</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 — Tokens &amp; Site</h2>
+      <p class="desc">Equivalent to <code>authenticate()</code> + <code>get_access_token()</code> + <code>get_jira_site()</code>.</p>
+      <label>Authorization code (paste from ?code=… after login)</label>
+      <input type="text" id="authCode" placeholder="Paste code here" />
+      <button class="btn-primary" onclick="exchangeCode()">🔄 Exchange code for tokens</button>
+      <button class="btn-secondary" onclick="refreshToken()">♻️ Refresh access token</button>
+      <label>Access Token (Bearer)</label>
+      <textarea id="accessToken" placeholder="Paste access_token from Python or browser flow…" style="min-height:70px"></textarea>
+      <label>Refresh Token</label>
+      <input type="text" id="refreshTokenInput" placeholder="Paste refresh_token…" />
+      <div class="row">
+        <div><label>Cloud ID</label><input type="text" id="cloudId" placeholder="xxxx-xxxx…" /></div>
+      </div>
+      <label>Site URL</label>
+      <input type="text" id="siteUrl" placeholder="https://your-site.atlassian.net" />
+      <button class="btn-green" onclick="discoverSite()">🌐 Discover site (accessible-resources)</button>
+      <button class="btn-ghost" onclick="saveLocal()">💾 Save to browser</button>
+      <div id="connStatus" class="status"><span class="dot idle"></span> Not connected</div>
+      <details>
+        <summary>How auth works (read me if token exchange fails)</summary>
+        <ol>
+          <li>Click <b>Open Atlassian Authorization Page</b>, approve access.</li>
+          <li>Browser lands on <code>http://localhost:8000/callback?code=…</code> — if nothing listens, it shows “unable to connect”. That is OK: copy the <code>code</code> from the address bar into the box above.</li>
+          <li>Click <b>Exchange code for tokens</b>. Browsers often get blocked by CORS on <code>auth.atlassian.com/oauth/token</code>. If so, use one of the generated snippets below (Python / curl) once, then paste the tokens back here.</li>
+          <li>Alternative (easiest): run <code>python testJIRACloud.py</code> once — it writes <code>jira_token.json</code>. Open that file, paste <code>access_token</code> above, click <b>Discover site</b>.</li>
+        </ol>
+      </details>
+      <label>Fallback snippet (auto-generated)</label>
+      <textarea id="fallbackSnippet" readonly style="min-height:130px"></textarea>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: OPERATIONS ============ -->
+  <section>
+    <div class="card">
+      <h2>Jira Operations</h2>
+      <p class="desc">Direct port of <code>JiraClient</code> methods. All calls go to <code>https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3</code>.</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('tab-create',this)">➕ Create</button>
+        <button class="tab-btn" onclick="showTab('tab-view',this)">🔍 Retrieve / Update</button>
+        <button class="tab-btn" onclick="showTab('tab-projects',this)">📁 Projects</button>
+        <button class="tab-btn" onclick="showTab('tab-desc',this)">📝 Description tools</button>
+      </div>
+
+      <!-- CREATE -->
+      <div id="tab-create" class="tab-panel active">
+        <div class="info">Maps to <code>JiraClient.create_issue(project_key, summary, description, issue_type)</code></div>
+        <div class="row">
+          <div><label>Project key *</label><input type="text" id="cProject" value="SCRUM" /></div>
+          <div><label>Issue type</label>
+            <select id="cType">
+              <option>Task</option><option>Story</option><option>Bug</option><option>Epic</option><option>Subtask</option>
+            </select>
+          </div>
+        </div>
+        <label>Summary *</label>
+        <input type="text" id="cSummary" value="Ticket created from GUI" />
+        <label>Description</label>
+        <textarea id="cDesc">This Jira ticket was created using the single-file GUI (port of testJIRACloud.py).</textarea>
+        <button class="btn-primary" onclick="createIssue()">➕ Create Issue (POST /issue)</button>
+      </div>
+
+      <!-- VIEW / UPDATE -->
+      <div id="tab-view" class="tab-panel">
+        <div class="info">Maps to <code>get_issue()</code> and <code>update_issue()</code>.</div>
+        <label>Issue key * (e.g. SCRUM-1)</label>
+        <div class="row">
+          <div style="flex:3"><input type="text" id="vKey" value="SCRUM-1" /></div>
+          <div><button class="btn-secondary" style="margin-top:0" onclick="getIssue()">🔍 Retrieve (GET)</button></div>
+        </div>
+        <div class="row">
+          <button class="btn-ghost btn-small" onclick="loadDemoIssue()">🧪 Load demo data (tests rendering, no network)</button>
+        </div>
+        <div id="viewStatus" class="status"><span class="dot idle"></span> No issue loaded yet</div>
+        <div id="issueView"><p style="color:var(--muted);font-size:13px">Retrieved issue will appear here as a card. Raw JSON always appears in <b>Result / Raw JSON</b> below.</p></div>
+        <label>New summary (leave blank to keep)</label>
+        <input type="text" id="uSummary" placeholder="Updated summary…" />
+        <label>New description (leave blank to keep)</label>
+        <textarea id="uDesc" placeholder="Updated description…"></textarea>
+        <button class="btn-primary" onclick="updateIssue()">💾 Update Issue (PUT /issue/{key})</button>
+        <div class="row">
+          <button class="btn-ghost" onclick="quickStamp()">🕒 Stamp description with timestamp</button>
+        </div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div id="tab-projects" class="tab-panel">
+        <div class="info">Maps to <code>get_projects()</code>, <code>get_projects_new()</code>, <code>get_permitted_projects()</code>.</div>
+        <div class="row">
+          <button class="btn-secondary" onclick="listProjects()">📁 List projects (GET /project)</button>
+          <button class="btn-secondary" onclick="permittedProjects()">🔐 Permitted projects</button>
+        </div>
+        <div class="row">
+          <div style="flex:3"><label>Single project key</label><input type="text" id="pSingle" value="SCRUM" /></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn-ghost" style="margin-top:0" onclick="getSingleProject()">Get project</button></div>
+        </div>
+        <div id="projectList"></div>
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div id="tab-desc" class="tab-panel">
+        <div class="info">Maps to <code>get_description()</code>, <code>update_description()</code>, <code>adf_to_text()</code>.</div>
+        <label>Issue key</label>
+        <input type="text" id="dKey" value="SCRUM-1" />
+        <div class="row">
+          <button class="btn-secondary" onclick="getDescription()">📖 Get description (ADF + text)</button>
+        </div>
+        <label>Plain-text description to set</label>
+        <textarea id="dText" placeholder="New plain text description…"></textarea>
+        <button class="btn-primary" onclick="setDescription()">✏️ Set description (PUT)</button>
+        <div class="row">
+          <div>
+            <label>Paste ADF JSON to convert → text</label>
+            <textarea id="adfIn" placeholder='{"type":"doc",...}'></textarea>
+            <button class="btn-ghost" onclick="convertAdf()">Convert ADF → text</button>
+          </div>
+          <div>
+            <label>Plain text to convert → ADF</label>
+            <textarea id="textIn" placeholder="Hello world"></textarea>
+            <button class="btn-ghost" onclick="convertText()">Convert text → ADF</button>
+          </div>
+        </div>
+        <div id="descOut"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Result / Raw JSON</h2>
+      <p class="desc">Every API response is pretty-printed here. Errors show status + body, like the Python <code>print(response.text)</code>.</p>
+      <div id="resultMeta" class="status"><span class="dot idle"></span> Ready</div>
+      <pre id="output">No calls yet. Connect on the left, then try an operation above.</pre>
+      <div class="row">
+        <button class="btn-ghost btn-small" onclick="copyOutput()">Copy JSON</button>
+        <button class="btn-ghost btn-small" onclick="clearOutput()">Clear</button>
+      </div>
+      <label>Activity log</label>
+      <pre id="log" style="max-height:160px"></pre>
+    </div>
+  </section>
+</main>
+
+<footer>Single-file GUI • port of <code>testJIRACloud.py</code> (OAuth2 + JiraClient) • vanilla HTML/CSS/JS, no dependencies</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const AUTH_URL = "https://auth.atlassian.com/authorize";
+const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
+const RESOURCES_URL = "https://api.atlassian.com/oauth/token/accessible-resources";
+
+/* ---------- tabs ---------- */
+function showTab(id, btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  $(id).classList.add('active'); btn.classList.add('active');
+}
+
+/* ---------- logging / output ---------- */
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  $('log').textContent = `[${t}] ${msg}\n` + $('log').textContent;
+}
+function showResult(meta, obj){
+  $('resultMeta').innerHTML = meta;
+  $('output').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+}
+function copyOutput(){ navigator.clipboard.writeText($('output').textContent).then(()=>log('Output copied')); }
+function clearOutput(){ $('output').textContent=''; $('resultMeta').innerHTML='<span class="dot idle"></span> Cleared'; }
+function setConn(ok, msg){
+  $('connStatus').innerHTML = `<span class="dot ${ok?'ok':'bad'}"></span> ${msg}`;
+}
+
+/* ---------- persistence ---------- */
+function saveLocal(){
+  const data = {clientId:$('clientId').value, clientSecret:$('clientSecret').value,
+    redirectUri:$('redirectUri').value, scopes:$('scopes').value,
+    accessToken:$('accessToken').value, refresh:$('refreshTokenInput').value,
+    cloudId:$('cloudId').value, siteUrl:$('siteUrl').value};
+  localStorage.setItem('jiraGui', JSON.stringify(data));
+  log('Saved config to localStorage'); alert('Saved to browser localStorage.');
+}
+(function loadLocal(){
+  try{
+    const d = JSON.parse(localStorage.getItem('jiraGui')||'null');
+    if(!d) return;
+    for(const [k,v] of Object.entries({clientId:d.clientId,clientSecret:d.clientSecret,redirectUri:d.redirectUri,scopes:d.scopes,accessToken:d.accessToken,refreshTokenInput:d.refresh,cloudId:d.cloudId,siteUrl:d.siteUrl})){
+      if(v) $(k).value = v;
+    }
+    log('Loaded saved config');
+  }catch(e){}
+})();
+
+/* ---------- OAuth ---------- */
+function buildAuthUrl(){
+  const params = new URLSearchParams({
+    audience:'api.atlassian.com',
+    client_id:$('clientId').value.trim(),
+    scope:$('scopes').value.trim().split(/\s+/).join(' '),
+    redirect_uri:$('redirectUri').value.trim(),
+    state: [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join(''),
+    response_type:'code', prompt:'consent'
+  });
+  const url = AUTH_URL + '?' + params.toString();
+  $('authUrl').value = url;
+  updateFallback();
+  log('Built authorization URL');
+  return url;
+}
+function openAuth(){
+  const url = buildAuthUrl();
+  window.open(url, '_blank');
+  log('Opened Atlassian authorization page');
+}
+function copyAuthUrl(){ navigator.clipboard.writeText($('authUrl').value).then(()=>log('Auth URL copied')); }
+function toggleSecret(){
+  const el = $('clientSecret');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+function updateFallback(){
+  const code = $('authCode').value.trim() || 'PASTE_CODE_HERE';
+  $('fallbackSnippet').value =
+`# If browser token exchange is blocked by CORS, run this once (same as testJIRACloud.py):
+curl -X POST ${TOKEN_URL} -H "Content-Type: application/json" -d '${JSON.stringify({grant_type:"authorization_code",client_id:$('clientId').value.trim(),client_secret:"***",code,redirect_uri:$('redirectUri').value.trim()})}'
+
+# --- OR python ---
+# import requests
+# r = requests.post("${TOKEN_URL}", json={"grant_type":"authorization_code","client_id":"${$('clientId').value.trim()}","client_secret":"<secret>","code":"${code}","redirect_uri":"${$('redirectUri').value.trim()}"})
+# print(r.json())`;
+}
+$('authCode').addEventListener('input', updateFallback);
+updateFallback();
+
+async function exchangeCode(){
+  const code = $('authCode').value.trim();
+  if(!code){ alert('Paste the authorization code first.'); return; }
+  const body = {grant_type:'authorization_code', client_id:$('clientId').value.trim(),
+    client_secret:$('clientSecret').value.trim(), code, redirect_uri:$('redirectUri').value.trim()};
+  log('Exchanging code for tokens…');
+  try{
+    const r = await fetch(TOKEN_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const data = await r.json();
+    if(!r.ok){ showResult(`<span class="dot bad"></span> Token exchange failed — HTTP ${r.status}`, data); log('Exchange failed: '+r.status); return; }
+    $('accessToken').value = data.access_token || '';
+    if(data.refresh_token) $('refreshTokenInput').value = data.refresh_token;
+    showResult(`<span class="dot ok"></span> Token exchange OK — paste Cloud ID or Discover site`, data);
+    log('Access token obtained'); setConn(true,'Token received — discover site next');
+    saveLocalSilent();
+  }catch(e){
+    showResult(`<span class="dot bad"></span> Fetch blocked (likely CORS on auth.atlassian.com)`, {error:String(e), hint:'Use the fallback snippet below the token panel: run the curl/python once, paste tokens above.'});
+    log('Exchange fetch failed (CORS?): '+e);
+  }
+}
+async function refreshToken(){
+  const rt = $('refreshTokenInput').value.trim();
+  if(!rt){ alert('No refresh token saved.'); return; }
+  const body = {grant_type:'refresh_token', client_id:$('clientId').value.trim(),
+    client_secret:$('clientSecret').value.trim(), refresh_token:rt};
+  log('Refreshing access token…');
+  try{
+    const r = await fetch(TOKEN_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const data = await r.json();
+    if(!r.ok){ showResult(`<span class="dot bad"></span> Refresh failed — HTTP ${r.status}`, data); return; }
+    $('accessToken').value = data.access_token || $('accessToken').value;
+    if(data.refresh_token) $('refreshTokenInput').value = data.refresh_token;
+    showResult(`<span class="dot ok"></span> Token refreshed`, data);
+    log('Token refreshed'); saveLocalSilent();
+  }catch(e){ showResult(`<span class="dot bad"></span> Refresh blocked (CORS?)`, {error:String(e)}); }
+}
+function saveLocalSilent(){
+  try{
+    const data = {clientId:$('clientId').value, clientSecret:$('clientSecret').value,
+      redirectUri:$('redirectUri').value, scopes:$('scopes').value,
+      accessToken:$('accessToken').value, refresh:$('refreshTokenInput').value,
+      cloudId:$('cloudId').value, siteUrl:$('siteUrl').value};
+    localStorage.setItem('jiraGui', JSON.stringify(data));
+  }catch(e){}
+}
+
+/* ---------- generic Jira call (JiraClient equivalent) ---------- */
+function baseUrl(){
+  const cid = $('cloudId').value.trim();
+  if(!cid) throw new Error('Cloud ID is empty — click "Discover site" first.');
+  return `https://api.atlassian.com/ex/jira/${cid}/rest/api/3`;
+}
+function authHeaders(){
+  const t = $('accessToken').value.trim();
+  if(!t) throw new Error('Access token is empty — authenticate first.');
+  return {Authorization:'Bearer '+t, Accept:'application/json', 'Content-Type':'application/json'};
+}
+async function jiraFetch(path, method='GET', body=null, query=''){
+  const res = await fetch(baseUrl()+path+query, {method, headers:authHeaders(), body: body?JSON.stringify(body):undefined});
+  const text = await res.text();
+  let data; try{ data = text?JSON.parse(text):null; }catch{ data = text; }
+  return {status:res.status, ok:res.ok, data};
+}
+
+/* ---------- site discovery ---------- */
+async function discoverSite(){
+  const t = $('accessToken').value.trim();
+  if(!t){ alert('Paste an access token first.'); return; }
+  log('Fetching accessible-resources…');
+  try{
+    const r = await fetch(RESOURCES_URL, {headers:{Authorization:'Bearer '+t, Accept:'application/json'}});
+    const data = await r.json();
+    if(!r.ok){ showResult(`<span class="dot bad"></span> Site lookup failed — HTTP ${r.status}`, data); return; }
+    showResult(`<span class="dot ok"></span> Accessible resources (${data.length})`, data);
+    const site = data.find(x=>(x.scopes||[]).some(s=>s.startsWith('read:jira')||s.startsWith('write:jira'))) || data[0];
+    if(site){ $('cloudId').value = site.id; $('siteUrl').value = site.url;
+      setConn(true, `Connected: ${site.name} (${site.url})`); log('Site: '+site.name); saveLocalSilent(); }
+  }catch(e){ showResult(`<span class="dot bad"></span> Site lookup failed`, {error:String(e)}); }
+}
+
+/* ---------- ADF helpers (port of adf_to_text + textToADF) ---------- */
+function textToADF(text){
+  return {type:'doc', version:1, content:[{type:'paragraph', content:[{type:'text', text:String(text||'') }]}]};
+}
+function adfToText(adf){
+  if(!adf) return '';
+  const out=[];
+  (function walk(node){
+    if(!node) return;
+    if(Array.isArray(node)){ node.forEach(walk); return; }
+    if(typeof node!=='object') return;
+    if(node.type==='text') out.push(node.text||'');
+    (node.content||[]).forEach(walk);
+    if(['paragraph','heading','blockquote','bulletList','orderedList','listItem','codeBlock'].includes(node.type)) out.push('\n');
+    if(node.type==='hardBreak') out.push('\n');
+  })(adf);
+  return out.join('').trim();
+}
+
+/* ---------- create / get / update ---------- */
+async function createIssue(){
+  const project = $('cProject').value.trim(), summary = $('cSummary').value.trim(),
+        desc = $('cDesc').value, type = $('cType').value;
+  if(!project || !summary){ alert('Project key and summary are required.'); return; }
+  const payload = {fields:{project:{key:project}, summary, issuetype:{name:type}, description:textToADF(desc)}};
+  log(`Creating issue in ${project}…`);
+  try{
+    const {status, ok, data} = await jiraFetch('/issue','POST',payload);
+    showResult(ok?`<span class="dot ok"></span> Created — HTTP ${status} (key: ${data.key||'?'})`:`<span class="dot bad"></span> Create failed — HTTP ${status}`, data);
+    if(ok){ $('vKey').value = data.key; $('dKey').value = data.key; log('Created '+data.key); }
+  }catch(e){ showResult(`<span class="dot bad"></span> ${e.message}`, {}); }
+}
+async function getIssue(){
+  const key = $('vKey').value.trim();
+  if(!key){ alert('Enter an issue key.'); return; }
+  $('viewStatus').innerHTML = `<span class="dot idle"></span> Retrieving ${escapeHtml(key)}…`;
+  log('Retrieving '+key+'…');
+  try{
+    const {status, ok, data} = await jiraFetch('/issue/'+encodeURIComponent(key));
+    showResult(ok?`<span class="dot ok"></span> Retrieved ${key} — HTTP ${status}`:`<span class="dot bad"></span> Retrieve failed — HTTP ${status}`, data);
+    if(ok){
+      renderIssueCard(data);
+      $('viewStatus').innerHTML = `<span class="dot ok"></span> Loaded ${escapeHtml(data.key||key)} — HTTP ${status}`;
+    } else {
+      // FAILURE WAS PREVIOUSLY INVISIBLE — now render it inline so the tab never looks "empty"
+      const detail = typeof data === 'object' ? JSON.stringify(data) : String(data);
+      $('viewStatus').innerHTML = `<span class="dot bad"></span> Retrieve failed — HTTP ${status}. See message below & Raw JSON.`;
+      $('issueView').innerHTML = `<div class="issue-card" style="border-color:var(--red)">
+        <b style="color:#ff8a7a">❌ Could not retrieve ${escapeHtml(key)} (HTTP ${status})</b>
+        <div class="kv"><div>Hint</div><div>${hintForStatus(status)}</div>
+        <div>Body</div><div><code>${escapeHtml(detail||'(empty)').slice(0,800)}</code></div></div>
+      </div>`;
+    }
+  }catch(e){
+    // e.g. missing token/cloudId, CORS "Failed to fetch", expired token
+    const msg = e.message || String(e);
+    showResult(`<span class="dot bad"></span> ${escapeHtml(msg)}`, {error:msg});
+    $('viewStatus').innerHTML = `<span class="dot bad"></span> ${escapeHtml(msg)}`;
+    $('issueView').innerHTML = `<div class="issue-card" style="border-color:var(--red)">
+      <b style="color:#ff8a7a">❌ ${escapeHtml(msg)}</b>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:6px">${hintForError(msg)}</div>
+    </div>`;
+    log('Retrieve error: '+msg);
+  }
+}
+/* Shared renderer — also used by demo button, so rendering can be tested without network */
+function renderIssueCard(data){
+  const f = data.fields||{};
+  const statusName = (f.status||{}).name || '?';
+  const descText = adfToText(f.description) || '(empty)';
+  $('issueView').innerHTML = `<div class="issue-card">
+    <div><span class="pill">🔑 ${escapeHtml(data.key||'')}</span><span class="pill">📌 ${escapeHtml(statusName)}</span><span class="pill">📁 ${escapeHtml((f.project||{}).key||'')}</span><span class="pill">🏷️ ${escapeHtml((f.issuetype||{}).name||'')}</span></div>
+    <div class="kv">
+      <div>Summary</div><div><b>${escapeHtml(f.summary||'')}</b></div>
+      <div>Status</div><div>${escapeHtml(statusName)}</div>
+      <div>Description</div><div>${escapeHtml(descText)}</div>
+      <div>Assignee</div><div>${escapeHtml((f.assignee||{}).displayName||'Unassigned')}</div>
+      <div>Priority</div><div>${escapeHtml((f.priority||{}).name||'—')}</div>
+    </div>
+  </div>`;
+  if(f.summary) $('uSummary').value = f.summary;
+  const t = adfToText(f.description); if(t) $('uDesc').value = t;
+  log('Rendered issue card for '+(data.key||'?'));
+}
+/* Demo data — proves the retrieve UI works even with no token/network */
+function loadDemoIssue(){
+  const demo = {key: $('vKey').value.trim()||'SCRUM-1',
+    fields:{summary:'Demo: login button broken', status:{name:'To Do'},
+      project:{key:'SCRUM'}, issuetype:{name:'Bug'},
+      assignee:{displayName:'Jane Doe'}, priority:{name:'High'},
+      description:{type:'doc',version:1,content:[{type:'paragraph',content:[{type:'text',text:'Steps: open app, click login, see error 500.'}]}]}}};
+  renderIssueCard(demo);
+  $('viewStatus').innerHTML = `<span class="dot ok"></span> Demo data loaded (no network call made)`;
+  showResult(`<span class="dot ok"></span> Demo issue (no network)`, demo);
+}
+function hintForStatus(status){
+  if(status===401) return '401 Unauthorized — access token expired or invalid. Click ♻️ Refresh, or re-run testJIRACloud.py and paste the new token.';
+  if(status===403) return '403 Forbidden — token lacks scope or you lack BROWSE permission. Check scopes + project permissions tab.';
+  if(status===404) return '404 Not found — wrong issue key, wrong Cloud ID, or issue deleted. Verify key (e.g. SCRUM-1) and Discover site again.';
+  return 'Check Raw JSON below for the exact Jira error message.';
+}
+function hintForError(msg){
+  if(/Cloud ID/i.test(msg)) return 'Click 🌐 <b>Discover site</b> on the left first — Cloud ID is required to build the API URL.';
+  if(/Access token/i.test(msg)) return 'Paste an access token on the left (from <code>jira_token.json</code> or the OAuth flow) and save.';
+  if(/Failed to fetch|CORS|NetworkError/i.test(msg)) return 'Browser blocked the request (CORS/offline). Check internet, disable ad-block for this page, or run the call from Python and compare.';
+  return 'See <b>Result / Raw JSON</b> below and Activity log for details.';
+}
+async function updateIssue(){
+  const key = $('vKey').value.trim();
+  const summary = $('uSummary').value.trim(), desc = $('uDesc').value;
+  if(!key){ alert('Enter an issue key.'); return; }
+  const fields = {};
+  if(summary) fields.summary = summary;
+  if(desc) fields.description = textToADF(desc);
+  if(!Object.keys(fields).length){ alert('Nothing to update — fill summary or description.'); return; }
+  log('Updating '+key+'…');
+  $('viewStatus').innerHTML = `<span class="dot idle"></span> Updating ${escapeHtml(key)}…`;
+  try{
+    const {status, ok, data} = await jiraFetch('/issue/'+encodeURIComponent(key),'PUT',{fields});
+    showResult(ok?`<span class="dot ok"></span> Updated ${key} — HTTP ${status}`:`<span class="dot bad"></span> Update failed — HTTP ${status}`, data||{success:ok});
+    if(ok){ $('viewStatus').innerHTML = `<span class="dot ok"></span> Updated ${escapeHtml(key)} — re-loading…`; log('Updated '+key); getIssue(); }
+    else { $('viewStatus').innerHTML = `<span class="dot bad"></span> Update failed — HTTP ${status}. ${escapeHtml(hintForStatus(status))}`; }
+  }catch(e){ $('viewStatus').innerHTML = `<span class="dot bad"></span> ${escapeHtml(e.message||String(e))}`; showResult(`<span class="dot bad"></span> ${escapeHtml(e.message||String(e))}`, {}); }
+}
+async function quickStamp(){
+  const key = $('vKey').value.trim(); if(!key){ alert('Enter an issue key first.'); return; }
+  const ts = new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14);
+  $('uDesc').value = `This is the ${ts} update.`;
+  updateIssue();
+}
+
+/* ---------- projects ---------- */
+async function listProjects(){
+  log('Listing projects…');
+  try{
+    const {status, ok, data} = await jiraFetch('/project','GET',null,'?startAt=0&maxResults=100');
+    showResult(ok?`<span class="dot ok"></span> Projects (${Array.isArray(data)?data.length:'?'}) — HTTP ${status}`:`<span class="dot bad"></span> Failed — HTTP ${status}`, data);
+    if(ok) $('projectList').innerHTML = data.map(p=>`<span class="pill" title="${escapeHtml(p.name)}"><b>${escapeHtml(p.key)}</b> — ${escapeHtml(p.name)}</span>`).join('');
+  }catch(e){ showResult(`<span class="dot bad"></span> ${e.message}`, {}); }
+}
+async function getSingleProject(){
+  const k = $('pSingle').value.trim(); if(!k){ alert('Enter a project key.'); return; }
+  log('Fetching project '+k+'…');
+  try{
+    const {status, ok, data} = await jiraFetch('/project/'+encodeURIComponent(k));
+    showResult(ok?`<span class="dot ok"></span> Project ${k} — HTTP ${status}`:`<span class="dot bad"></span> Failed — HTTP ${status}`, data);
+  }catch(e){ showResult(`<span class="dot bad"></span> ${e.message}`, {}); }
+}
+async function permittedProjects(){
+  log('Checking permitted projects…');
+  try{
+    const {status, ok, data} = await jiraFetch('/permissions/project','POST',{permissions:['BROWSE_PROJECTS','CREATE_ISSUES']});
+    showResult(ok?`<span class="dot ok"></span> Permitted projects — HTTP ${status}`:`<span class="dot bad"></span> Failed — HTTP ${status}`, data);
+    if(ok && data.projects) $('projectList').innerHTML = data.projects.map(p=>`<span class="pill">ID=${escapeHtml(p.id)} | KEY=${escapeHtml(p.key)}</span>`).join('');
+  }catch(e){ showResult(`<span class="dot bad"></span> ${e.message}`, {}); }
+}
+
+/* ---------- description tools ---------- */
+async function getDescription(){
+  const key = $('dKey').value.trim(); if(!key){ alert('Enter an issue key.'); return; }
+  log('Getting description for '+key+'…');
+  try{
+    const {status, ok, data} = await jiraFetch('/issue/'+encodeURIComponent(key),'GET',null,'?fields=description');
+    if(!ok){ showResult(`<span class="dot bad"></span> Failed — HTTP ${status}`, data); return; }
+    const adf = data.fields.description;
+    const text = adfToText(adf);
+    $('dText').value = text;
+    $('descOut').innerHTML = `<div class="issue-card"><b>Plain text:</b><br>${escapeHtml(text)||'(empty)'}</div>`;
+    showResult(`<span class="dot ok"></span> Description for ${key} — HTTP ${status}`, adf);
+  }catch(e){ showResult(`<span class="dot bad"></span> ${e.message}`, {}); }
+}
+async function setDescription(){
+  const key = $('dKey').value.trim(), text = $('dText').value;
+  if(!key){ alert('Enter an issue key.'); return; }
+  log('Setting description for '+key+'…');
+  try{
+    const {status, ok, data} = await jiraFetch('/issue/'+encodeURIComponent(key),'PUT',{fields:{description:textToADF(text)}});
+    showResult(ok?`<span class="dot ok"></span> Description updated — HTTP ${status}`:`<span class="dot bad"></span> Failed — HTTP ${status}`, data||{success:ok});
+  }catch(e){ showResult(`<span class="dot bad"></span> ${e.message}`, {}); }
+}
+function convertAdf(){
+  try{ const adf = JSON.parse($('adfIn').value); $('descOut').innerHTML = `<div class="issue-card">${escapeHtml(adfToText(adf))}</div>`; log('ADF → text converted'); }
+  catch(e){ alert('Invalid ADF JSON: '+e.message); }
+}
+function convertText(){
+  const adf = textToADF($('textIn').value);
+  showResult(`<span class="dot ok"></span> Text → ADF`, adf);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+buildAuthUrl();
+log('GUI loaded — mirrors testJIRACloud.py');
+</script>
+</body>
+</html>
