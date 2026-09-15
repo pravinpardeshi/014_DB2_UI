@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JIRA Cloud Client</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <aside class="sidenav" id="sidenav">
+    <div class="brand">
+      <span class="brand-mark">J</span>
+      <span class="brand-text">JIRA Client</span>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <button class="nav-btn active" data-view="connection">Connection</button>
+      <button class="nav-btn" data-view="projects">Projects</button>
+      <button class="nav-btn" data-view="issues">Issues</button>
+      <button class="nav-btn" data-view="description">Description</button>
+      <button class="nav-btn" data-view="priority">Priority</button>
+      <button class="nav-btn" data-view="comments">Comments</button>
+    </nav>
+    <div class="sidenav-foot">
+      <button class="btn btn-ghost" id="themeBtn" type="button">Dark mode</button>
+      <p class="foot-note">Backend: testJIRACloud.py<br />Port 8099</p>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost menu-btn" id="menuBtn" type="button" aria-label="Toggle menu">Menu</button>
+      <div class="status" id="connStatus"><span class="dot idle"></span> Checking connection…</div>
+      <button class="btn btn-small" id="refreshStatusBtn" type="button">Refresh status</button>
+    </header>
+
+    <main class="content">
+      <!-- CONNECTION -->
+      <section class="view active" id="view-connection">
+        <h1>Connection</h1>
+        <p class="muted">OAuth via backend — no CORS. Paste tokens or complete the code flow.</p>
+
+        <div class="card">
+          <h2>OAuth authorization URL</h2>
+          <p class="muted">Callback uses <b>http://localhost:8000/callback</b> (same as testJIRACloud.py — already in the Atlassian console). This server listens on port 8000 and finishes the login automatically — no more "Unable to connect".</p>
+          <button class="btn btn-secondary" id="authUrlBtn" type="button">Build authorization URL</button>
+          <label for="authUrl">Authorization URL</label>
+          <textarea id="authUrl" readonly placeholder="Click the button above"></textarea>
+          <a class="btn btn-primary link-btn" id="authOpenLink" href="#" target="_blank" rel="noopener">Open Atlassian login</a>
+        </div>
+
+        <div class="card">
+          <h2>Exchange authorization code</h2>
+          <p class="muted">Normally automatic via the <b>:8000 callback</b>. Only paste manually if the browser didn't forward — copy <b>?code=…</b> from the address bar.</p>
+          <label for="authCode">Code from ?code=… callback</label>
+          <input type="text" id="authCode" placeholder="Paste code here" />
+          <button class="btn btn-primary" id="exchangeBtn" type="button">Exchange code for tokens</button>
+          <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh access token</button>
+        </div>
+
+        <div class="card">
+          <h2>Manual connect</h2>
+          <label for="manualToken">Access token</label>
+          <textarea id="manualToken" placeholder="Paste access_token from jira_token.json"></textarea>
+          <label for="manualRefresh">Refresh token (optional)</label>
+          <input type="text" id="manualRefresh" placeholder="Paste refresh_token" />
+          <label for="manualCloud">Cloud ID (optional — auto-discovered if blank)</label>
+          <input type="text" id="manualCloud" placeholder="xxxx-xxxx" />
+          <button class="btn btn-primary" id="connectBtn" type="button">Connect</button>
+          <button class="btn btn-secondary" id="discoverBtn" type="button">Discover site</button>
+        </div>
+      </section>
+
+      <!-- PROJECTS -->
+      <section class="view" id="view-projects">
+        <h1>Projects</h1>
+        <p class="muted">Browse accessible JIRA projects.</p>
+        <div class="card">
+          <h2>All projects</h2>
+          <button class="btn btn-primary" id="listProjectsBtn" type="button">List projects</button>
+          <div class="pill-list" id="projectList"></div>
+        </div>
+        <div class="card">
+          <h2>Single project</h2>
+          <label for="singleProjectKey">Project key</label>
+          <input type="text" id="singleProjectKey" value="SCRUM" />
+          <button class="btn btn-secondary" id="singleProjectBtn" type="button">Get project</button>
+        </div>
+        <div class="card">
+          <h2>Permitted projects</h2>
+          <button class="btn btn-secondary" id="permittedBtn" type="button">Check permissions</button>
+          <div class="pill-list" id="permittedList"></div>
+        </div>
+      </section>
+
+      <!-- ISSUES -->
+      <section class="view" id="view-issues">
+        <h1>Issues</h1>
+        <p class="muted">Create, retrieve and update tickets.</p>
+        <div class="card">
+          <h2>Create issue</h2>
+          <div class="grid-2">
+            <div>
+              <label for="cProject">Project key</label>
+              <input type="text" id="cProject" value="SCRUM" />
+            </div>
+            <div>
+              <label for="cType">Issue type</label>
+              <select id="cType">
+                <option>Task</option>
+                <option>Story</option>
+                <option>Bug</option>
+                <option>Epic</option>
+                <option>Subtask</option>
+              </select>
+            </div>
+          </div>
+          <label for="cSummary">Summary</label>
+          <input type="text" id="cSummary" value="Ticket created from UI" />
+          <label for="cDesc">Description</label>
+          <textarea id="cDesc">Created via FastAPI + testJIRACloud backend.</textarea>
+          <button class="btn btn-primary" id="createIssueBtn" type="button">Create issue</button>
+        </div>
+
+        <div class="card">
+          <h2>Retrieve / update issue</h2>
+          <label for="vKey">Issue key</label>
+          <div class="inline-row">
+            <input type="text" id="vKey" value="SCRUM-1" />
+            <button class="btn btn-secondary" id="getIssueBtn" type="button">Retrieve</button>
+          </div>
+          <div class="issue-card" id="issueCard"><p class="muted">No issue loaded yet.</p></div>
+          <label for="uSummary">New summary (blank = keep)</label>
+          <input type="text" id="uSummary" placeholder="Updated summary…" />
+          <label for="uDesc">New description (blank = keep)</label>
+          <textarea id="uDesc" placeholder="Updated description…"></textarea>
+          <button class="btn btn-primary" id="updateIssueBtn" type="button">Update issue</button>
+        </div>
+      </section>
+
+      <!-- DESCRIPTION -->
+      <section class="view" id="view-description">
+        <h1>Description</h1>
+        <p class="muted">Read and write the ADF description field.</p>
+        <div class="card">
+          <label for="dKey">Issue key</label>
+          <input type="text" id="dKey" value="SCRUM-1" />
+          <button class="btn btn-secondary" id="getDescBtn" type="button">Get description</button>
+          <div class="issue-card" id="descCard"><p class="muted">No description loaded yet.</p></div>
+          <label for="dText">Plain-text description</label>
+          <textarea id="dText" placeholder="New plain text description…"></textarea>
+          <button class="btn btn-primary" id="setDescBtn" type="button">Set description</button>
+        </div>
+      </section>
+
+      <!-- PRIORITY -->
+      <section class="view" id="view-priority">
+        <h1>Priority</h1>
+        <p class="muted">List priorities and update a ticket's priority.</p>
+        <div class="card">
+          <h2>Available priorities</h2>
+          <button class="btn btn-secondary" id="listPriBtn" type="button">Load priorities</button>
+          <div class="pill-list" id="priorityList"></div>
+        </div>
+        <div class="card">
+          <h2>Update priority</h2>
+          <div class="grid-2">
+            <div>
+              <label for="pKey">Issue key</label>
+              <input type="text" id="pKey" value="SCRUM-1" />
+            </div>
+            <div>
+              <label for="pValue">Priority name or id</label>
+              <select id="pValue">
+                <option>Highest</option>
+                <option selected>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+                <option>Lowest</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="updatePriBtn" type="button">Update priority</button>
+        </div>
+      </section>
+
+      <!-- COMMENTS -->
+      <section class="view" id="view-comments">
+        <h1>Comments</h1>
+        <p class="muted">Full comment lifecycle on a ticket.</p>
+        <div class="card">
+          <h2>List comments</h2>
+          <label for="cmKey">Issue key</label>
+          <div class="inline-row">
+            <input type="text" id="cmKey" value="SCRUM-1" />
+            <button class="btn btn-secondary" id="listCmBtn" type="button">Load comments</button>
+          </div>
+          <div id="commentList"></div>
+        </div>
+        <div class="card">
+          <h2>Add comment</h2>
+          <label for="cmText">Comment text</label>
+          <textarea id="cmText" placeholder="Write a comment…"></textarea>
+          <button class="btn btn-primary" id="addCmBtn" type="button">Add comment</button>
+        </div>
+        <div class="card">
+          <h2>Update / delete comment</h2>
+          <label for="cmId">Comment ID</label>
+          <input type="text" id="cmId" placeholder="e.g. 10000" />
+          <label for="cmEdit">Updated text</label>
+          <textarea id="cmEdit" placeholder="Updated comment text…"></textarea>
+          <div class="inline-row">
+            <button class="btn btn-secondary" id="updateCmBtn" type="button">Update comment</button>
+            <button class="btn btn-danger" id="deleteCmBtn" type="button">Delete comment</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card result-card">
+        <h2>Result / raw JSON</h2>
+        <div class="status" id="resultMeta"><span class="dot idle"></span> Ready</div>
+        <pre id="output">No calls yet. Connect first, then try an operation.</pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
